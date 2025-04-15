@@ -52,4 +52,34 @@ public class OthelloServer {
         }
         return b;
     }
+
+    private boolean isValidmove(char[][] board, int player, int row, int col) {
+        boolean result = false;
+        if (board[row][col] != empty) {
+            return result;
+        }
+        char opponent = white;
+        char currentplayer = black;
+        if (player == 2) {
+            opponent = black;
+            currentplayer = white;
+        }
+        int[] walkr = { -1, -1, -1, 0, 1, 1, 1, 0 };
+        int[] walkc = { -1, 0, 1, 1, 1, 0, -1, -1 };
+
+        for (int n = 0; n < 8; n++) {
+            boolean opponentsquare = false;
+            int r = row + walkr[n];
+            int c = col + walkc[n];
+            while (r >= 0 && c >= 0 && r < board_size && c < board_size && board[r][c] == opponent) {
+                r = r + walkr[n];
+                c = c + walkc[n];
+                opponentsquare = true;
+            }
+            if (r >= 0 && c >= 0 && r < board_size && c < board_size && board[r][c] == currentplayer) {
+                result = true;
+            }
+        }
+        return result;
+    }
 }
