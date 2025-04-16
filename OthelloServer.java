@@ -76,7 +76,8 @@ public class OthelloServer {
                 c = c + walkc[n];
                 opponentsquare = true;
             }
-            if (r >= 0 && c >= 0 && r < board_size && c < board_size && board[r][c] == currentplayer) {
+            if (r >= 0 && c >= 0 && r < board_size && c < board_size && board[r][c] == currentplayer
+                    && opponentsquare == true) {
                 result = true;
             }
         }
