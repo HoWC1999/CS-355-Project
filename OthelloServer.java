@@ -30,6 +30,7 @@ public class OthelloServer {
         }
     }
 
+    // puts initial pieces on the board
     private void initializeboard(char[][] board) {
         for (int k = 0; k < board_size; k++) {
             for (int l = 0; l < board_size; l++) {
@@ -54,6 +55,7 @@ public class OthelloServer {
         return b;
     }
 
+    // check if particular move in row/column is valid
     private boolean isValidmove(char[][] board, int player, int row, int col) {
         boolean result = false;
         if (board[row][col] != empty) {
@@ -68,7 +70,7 @@ public class OthelloServer {
         int[] walkr = { -1, -1, -1, 0, 1, 1, 1, 0 };
         int[] walkc = { -1, 0, 1, 1, 1, 0, -1, -1 };
 
-        for (int n = 0; n < 8; n++) {
+        for (int n = 0; n < board_size; n++) {
             boolean opponentsquare = false;
             int r = row + walkr[n];
             int c = col + walkc[n];
@@ -85,6 +87,8 @@ public class OthelloServer {
         return result;
     }
 
+    // returns all valid moves
+    // each move is 2 element integer array
     private ArrayList<int[]> getValidmoves(char[][] board, int player) {
         ArrayList<int[]> returnMoves = new ArrayList<>();
         for (int r = 0; r < board_size; r++) {
@@ -95,5 +99,17 @@ public class OthelloServer {
             }
         }
         return returnMoves;
+    }
+
+    // call after checking if move is valid
+    private void flipOpponent(char[][] board, int player, int row, int col) {
+        char playerch = black;
+        char opponentch = white;
+        if (player == 2) {
+            opponentch = black;
+            playerch = white;
+        }
+        int[] walkr = { -1, -1, -1, 0, 1, 1, 1, 0 };
+        int[] walkc = { -1, 0, 1, 1, 1, 0, -1, -1 };
     }
 }
