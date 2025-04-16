@@ -1,6 +1,7 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
 
 public class OthelloServer {
 
@@ -82,5 +83,17 @@ public class OthelloServer {
             }
         }
         return result;
+    }
+
+    private ArrayList<int[]> getValidmoves(char[][] board, int player) {
+        ArrayList<int[]> returnMoves = new ArrayList<>();
+        for (int r = 0; r < board_size; r++) {
+            for (int c = 0; c < board_size; c++) {
+                if (isValidmove(board, player, r, c)) {
+                    returnMoves.add(new int[] { r, c });
+                }
+            }
+        }
+        return returnMoves;
     }
 }
