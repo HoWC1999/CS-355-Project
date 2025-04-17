@@ -44,12 +44,16 @@ public class OthelloServer {
         board[4][3] = black;
     }
 
-    private String boardToSend(char[][] board) {
+    private String boardToSend(char[][] board, int currentPlayer) {
         String b = "\n  0 1 2 3 4 5 6 7\n";
         for (int r = 0; r < board_size; r++) {
             b = b + Integer.toString(r) + " ";
             for (int c = 0; c < board_size; c++) {
-                b = b + board[r][c] + " ";
+                if (board[r][c] == empty && isValidmove(board, currentPlayer, r, c)) {
+                    b = b + possible + " ";
+                } else {
+                    b = b + board[r][c] + " ";
+                }
             }
         }
         return b;
@@ -61,25 +65,25 @@ public class OthelloServer {
         if (board[row][col] != empty) {
             return result;
         }
-        char opponent = white;
-        char currentplayer = black;
+        char opponentch = white;
+        char playerch = black;
         if (player == 2) {
-            opponent = black;
-            currentplayer = white;
+            opponentch = black;
+            playerch = white;
         }
         int[] walkr = { -1, -1, -1, 0, 1, 1, 1, 0 };
         int[] walkc = { -1, 0, 1, 1, 1, 0, -1, -1 };
 
-        for (int n = 0; n < board_size; n++) {
+        for (int n = 0; n < walkr.length; n++) {
             boolean opponentsquare = false;
             int r = row + walkr[n];
             int c = col + walkc[n];
-            while (r >= 0 && c >= 0 && r < board_size && c < board_size && board[r][c] == opponent) {
+            while (r >= 0 && c >= 0 && r < board_size && c < board_size && board[r][c] == opponentch) {
                 r = r + walkr[n];
                 c = c + walkc[n];
                 opponentsquare = true;
             }
-            if (r >= 0 && c >= 0 && r < board_size && c < board_size && board[r][c] == currentplayer
+            if (r >= 0 && c >= 0 && r < board_size && c < board_size && board[r][c] == playerch
                     && opponentsquare == true) {
                 result = true;
             }
@@ -111,5 +115,20 @@ public class OthelloServer {
         }
         int[] walkr = { -1, -1, -1, 0, 1, 1, 1, 0 };
         int[] walkc = { -1, 0, 1, 1, 1, 0, -1, -1 };
+        for (int i = 0; i < walkr.length; i++) {
+            int r = row + walkr[i];
+            int c = col + walkc[i];
+            ArrayList<int[]> opponentflip = new ArrayList<>();
+            while (r >= 0 && c >= 0 && r < board_size && c < board_size && board[r][c] == opponentch) {
+                opponentflip.add(new int[] { r, c });
+                r = r + walkr[i];
+                c = c + walkc[i];
+            }
+            if (r >= 0 && c >= 0 && r < board_size && c < board_size && board[r][c] == playerch) {
+                for (int[] pos : opponentflip) {
+                    board[pos[0]][pos[1]] = playerch;
+                }
+            }
+        }
     }
 }
