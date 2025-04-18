@@ -20,11 +20,45 @@ public class OthelloServer {
     public void execute() {
 
         char[][] board = new char[board_size][board_size];
+        String statusMessage = "";
         int currentPlayer = 1; // 1 - black, 2 - white
         initializeBoard(board);
         try {
             DataInputStream reader = new DataInputStream(socket.getInputStream());
             DataOutputStream writer = new DataOutputStream(socket.getOutputStream());
+
+            writer.writeUTF(printInstructions());
+            writer.flush();
+
+            boolean gameover = false;
+            String nextmove;
+            while (!gameover) {
+                ArrayList<int[]> cp = getValidmoves(board, currentPlayer);
+                if (cp.size() == 0) {
+                    if (currentPlayer == 1) {
+                        currentPlayer = 2;
+                    } else {
+                        currentPlayer = 1;
+                    }
+                    ArrayList<int[]> cpNew = getValidmoves(board, currentPlayer);
+                    if (cpNew.size() == 0) {
+                        gameover = true;
+                    }
+                }
+                writer.writeUTF(boardToSend(board, currentPlayer));
+                writer.flush();
+                writer.writeUTF(scoreBoard(board));
+                writer.flush();
+                if (gameover) {
+                    writer.writeUTF(winningMessage(board));
+                    writer.flush();
+                } else {
+                    writer.writeUTF(statusMessage + moveMessage(currentPlayer));
+                    writer.flush();
+                    statusMessage = "";
+                    nextmove = reader.readUTF();
+                }
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -167,5 +201,34 @@ public class OthelloServer {
         } else {
             return "White";
         }
+    }
+
+    private String winningMessage(char[][] board) {
+        int countW = 0;
+        int countB = 0;
+        for (int r = 0; r < board_size; r++) {
+            for (int c = 0; c < board_size; c++) {
+                switch (board[r][c]) {
+                    case black:
+                        countB++;
+                        break;
+                    case white:
+                        countW++;
+                        break;
+                }
+
+            }
+        }
+        if (countB > countW) {
+            return "black wins!\n";
+        } else if (countB < countW) {
+            return "white wins!\n";
+        } else {
+            return "tie!\n";
+        }
+    }
+
+    private String moveMessage(int currentPlayer) {
+        return playerName(currentPlayer) + ", please enter a row and column for the next move\n";
     }
 }
