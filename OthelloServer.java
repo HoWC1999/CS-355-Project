@@ -21,7 +21,7 @@ public class OthelloServer {
 
         char[][] board = new char[board_size][board_size];
         int currentPlayer = 1; // 1 - black, 2 - white
-        initializeboard(board);
+        initializeBoard(board);
         try {
             DataInputStream reader = new DataInputStream(socket.getInputStream());
             DataOutputStream writer = new DataOutputStream(socket.getOutputStream());
@@ -31,7 +31,7 @@ public class OthelloServer {
     }
 
     // puts initial pieces on the board
-    private void initializeboard(char[][] board) {
+    private void initializeBoard(char[][] board) {
         for (int k = 0; k < board_size; k++) {
             for (int l = 0; l < board_size; l++) {
                 board[k][l] = empty;
@@ -115,6 +115,7 @@ public class OthelloServer {
         }
         int[] walkr = { -1, -1, -1, 0, 1, 1, 1, 0 };
         int[] walkc = { -1, 0, 1, 1, 1, 0, -1, -1 };
+        board[row][col] = playerch;
         for (int i = 0; i < walkr.length; i++) {
             int r = row + walkr[i];
             int c = col + walkc[i];
@@ -130,5 +131,27 @@ public class OthelloServer {
                 }
             }
         }
+    }
+
+    private String scoreBoard(char[][] board) {
+        String s = "current score: \n";
+        int countW = 0;
+        int countB = 0;
+        for (int r = 0; r < board_size; r++) {
+            for (int c = 0; c < board_size; c++) {
+                switch (board[r][c]) {
+                    case black:
+                        countB++;
+                        break;
+                    case white:
+                        countW++;
+                        break;
+                }
+
+            }
+        }
+        s += countB + " black pieces on the board\n";
+        s += countW + " white pieces on the board\n";
+        return s;
     }
 }
