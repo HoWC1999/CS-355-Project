@@ -154,4 +154,18 @@ public class OthelloServer {
         s += countW + " white pieces on the board\n";
         return s;
     }
+
+    private String printInstructions() {
+        String s = "Othello Game\n";
+        s += "Enter moves as a  'row column' pair\n\n";
+        return s;
+    }
+
+    private String playerName(int playerNum) {
+        if (playerNum == 1) {
+            return "Black";
+        } else {
+            return "White";
+        }
+    }
 }
