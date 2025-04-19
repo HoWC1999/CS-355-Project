@@ -59,6 +59,15 @@ public class OthelloServer {
                     nextmove = reader.readUTF();
                     if (!isNextMoveValid(board, currentPlayer, nextmove)) {
                         statusMessage = "Invalid Move. Try Again.\n";
+                        continue;
+                    } else {
+                        int[] coordinates = parseMove(nextmove);
+                        flipOpponent(board, currentPlayer, coordinates[0], coordinates[1]);
+                        if (currentPlayer == 1) {
+                            currentPlayer = 2;
+                        } else {
+                            currentPlayer = 1;
+                        }
                     }
                 }
             }
@@ -236,18 +245,28 @@ public class OthelloServer {
     }
 
     private boolean isNextMoveValid(char[][] board, int currentPlayer, String currentMove) {
-        int row;
-        int col;
-        String[] coordinates = currentMove.trim().split("\\s+");
+
+        int[] coordinates = parseMove(currentMove);
         if (coordinates.length != 2) {
             return false;
+        } else {
+            return isValidmove(board, currentPlayer, coordinates[0], coordinates[1]);
+        }
+    }
+
+    private int[] parseMove(String move) {
+        int row;
+        int col;
+        String[] coordinates = move.trim().split("\\s+");
+        if (coordinates.length != 2) {
+            return new int[] {};
         }
         try {
             row = Integer.parseInt(coordinates[0]);
             col = Integer.parseInt(coordinates[1]);
-            return isValidmove(board, currentPlayer, row, col);
+            return new int[] { row, col };
         } catch (Exception e) {
-            return false;
+            return new int[] {};
         }
     }
 }
