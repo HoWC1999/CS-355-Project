@@ -15,22 +15,19 @@ public class OthelloClient {
 
         s = reader.readUTF();
         System.out.println(s);
-        String userInputMenu = keyboard.nextLine();
-        writer.writeUTF(userInputMenu);
-        writer.flush();
-        String userInputValue = "";
-
-        while (!userInputValue.equals("bye")) {
-
+        do {
             s = reader.readUTF();
             System.out.println(s);
-            userInputValue = keyboard.nextLine();
-            writer.writeUTF(userInputValue);
-            writer.flush();
             s = reader.readUTF();
             System.out.println(s);
-
-        }
+            s = reader.readUTF();
+            System.out.println(s);
+            if (!(s.contains("Game over!"))) {
+                String userInputMenu = keyboard.nextLine();
+                writer.writeUTF(userInputMenu);
+                writer.flush();
+            }
+        } while (!(s.contains("Game over!")));
 
         keyboard.close();
         reader.close();
