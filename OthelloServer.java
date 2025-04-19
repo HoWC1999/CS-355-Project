@@ -101,6 +101,7 @@ public class OthelloServer {
                     b = b + board[r][c] + " ";
                 }
             }
+            b = b + "\n";
         }
         return b;
     }
@@ -264,6 +265,9 @@ public class OthelloServer {
         try {
             row = Integer.parseInt(coordinates[0]);
             col = Integer.parseInt(coordinates[1]);
+            if (col >= board_size || col < 0 || row >= board_size || row < 0) {
+                return new int[] {};
+            }
             return new int[] { row, col };
         } catch (Exception e) {
             return new int[] {};
