@@ -232,11 +232,11 @@ public class OthelloServer {
             }
         }
         if (countB > countW) {
-            return "black wins!\n";
+            return "Game over! black wins!\n";
         } else if (countB < countW) {
-            return "white wins!\n";
+            return "Game over! white wins!\n";
         } else {
-            return "tie!\n";
+            return "Game over! tie!\n";
         }
     }
 
