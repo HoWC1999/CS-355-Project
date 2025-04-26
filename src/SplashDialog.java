@@ -29,7 +29,13 @@ public class SplashDialog extends JDialog {
     add(new JScrollPane(rules), BorderLayout.CENTER);
     add(startBtn, BorderLayout.SOUTH);
     pack();
+
+    Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+    double height = screen.getHeight();
+    double width = screen.getWidth();
+    setSize((int) (width/2.0), (int) (height/2.0));
     setLocationRelativeTo(owner);
+
   }
 
   public static void showSplash() {
