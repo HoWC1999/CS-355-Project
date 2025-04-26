@@ -1,4 +1,4 @@
-package src;
+package src.main;
 
 import java.io.*;
 import java.net.*;
@@ -10,12 +10,11 @@ public class OthelloServer implements Runnable {
   private static final char WHITE = 'w';
   private static final char BLACK = 'b';
 
-  private final Socket socket;
+  private Socket socket;
   private DataInputStream in;
   private DataOutputStream out;
 
   private final char[][] board = new char[BOARD_SIZE][BOARD_SIZE];
-  private int currentPlayer = 1;
 
 
   public OthelloServer(Socket socket) {
@@ -107,6 +106,7 @@ public class OthelloServer implements Runnable {
       }
       sb.append("\n");
     }
+    int currentPlayer = 1;
     sb.append(currentPlayer).append("\n");
     out.writeUTF(sb.toString());
     out.flush();
@@ -152,25 +152,16 @@ public class OthelloServer implements Runnable {
 
     String winner;
     if (blackCount > whiteCount) {
-      winner = "Black (You) win! 🏆";
+      winner = "Black (You) win";
     } else if (whiteCount > blackCount) {
-      winner = "White (Server) wins! 🏆";
+      winner = "White (Server) wins";
     } else {
-      winner = "It's a tie! 🤝";
+      winner = "It's a tie";
     }
 
-    return "Game Over! Final Score: Black " + blackCount + " - White " + whiteCount + ". " + winner;
+    return "Game Over Final Score: Black " + blackCount + " - White " + whiteCount + ". " + winner;
   }
 
-  private void makeServerMove() {
-    List<int[]> moves = getValidMoves(WHITE);
-    if (!moves.isEmpty()) {
-      Random rand = new Random();
-      int[] move = moves.get(rand.nextInt(moves.size()));
-      placeMove(move[0], move[1], WHITE);
-      System.out.println("Server played at: " + move[0] + "," + move[1]);
-    }
-  }
 
   private boolean isValidMove(int row, int col, char playerPiece) {
     if (!isInBounds(row, col) || board[row][col] != EMPTY)
