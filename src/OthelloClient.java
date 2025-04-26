@@ -60,7 +60,9 @@ public class OthelloClient extends JFrame {
         // 1) signal the listen thread to stop
         gameOver = true;
         // 2) tell server goodbye (optional but polite)
-        try { out.writeUTF("bye"); out.flush(); } catch (IOException ignored) {}
+        try { out.writeUTF("bye"); out.flush(); } catch (IOException exception) {
+          exception.getMessage();
+        }
         // 3) close our socket
         try { socket.close(); } catch (IOException ignored) {}
         // 4) dispose UI and exit JVM

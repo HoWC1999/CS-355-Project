@@ -37,74 +37,67 @@ public class OthelloServer implements Runnable {
 
   @Override
   public void run() {
-    boolean gameEnded = false;
     try {
-      in  = new DataInputStream (socket.getInputStream());
+      in  = new DataInputStream(socket.getInputStream());
       out = new DataOutputStream(socket.getOutputStream());
 
-      sendBoard();                    // send initial position
+      // 1) initial setup
+      initializeBoard();
+      sendBoard();
 
       while (true) {
-        // 1) Read the next client message…
-        String cmd = in.readUTF();
-        System.out.println("Received: " + cmd);
+        String cmd = in.readUTF().trim();
 
-        // 2) If it’s our special restart token…
-        if (cmd.equalsIgnoreCase("RESTART")) {            // ← ADDED
-          initializeBoard();                              // ← ADDED
-          currentPlayer = 1;                              // ← ADDED
-          gameEnded     = false;                          // ← ADDED
-          sendBoard();                                    // ← ADDED
-          continue;                                       // ← ADDED
-        }
-
-        // 3) If it’s the normal “bye” exit:
+        // 2) control commands
         if (cmd.equalsIgnoreCase("bye")) {
           break;
         }
+        if (cmd.equalsIgnoreCase("RESTART")) {
+          initializeBoard();
+          sendBoard();
+          continue;
+        }
 
-        // 4) Otherwise parse as a move and play through:
+        // 3) parse black’s move
         String[] parts = cmd.split(",");
         int row = Integer.parseInt(parts[0]);
         int col = Integer.parseInt(parts[1]);
 
-        if (currentPlayer == 1) { // Client’s turn
-          if (isValidMove(row, col, BLACK)) {
-            placeMove(row, col, BLACK);
-            currentPlayer = 2;
-          } else {
-            System.out.println("Invalid move: " + row + "," + col);
-          }
-        } else {                   // Server’s turn
-          Thread.sleep(500);
-          makeServerMove();
-          currentPlayer = 1;
+        // 4) apply black’s move if valid
+        if (isValidMove(row, col, BLACK)) {
+          placeMove(row, col, BLACK);
+        } else {
+          System.out.println("Invalid black move: " + row + "," + col);
         }
 
-        // 5) Check for game‐over:
+        // 5) immediately auto‐play white
+        List<int[]> whiteMoves = getValidMoves(WHITE);
+        if (!whiteMoves.isEmpty()) {
+          int[] m = whiteMoves.get(new Random().nextInt(whiteMoves.size()));
+          placeMove(m[0], m[1], WHITE);
+          System.out.println("Auto white move: " + m[0] + "," + m[1]);
+        }
+
+        // 6) check for game‐over
         if (isGameOver()) {
-          gameEnded = true;
           sendBoard();
           out.writeUTF(getWinnerMessage());
           out.flush();
-          // NOTE: do *not* break here if you want to let the client
-          //       send “RESTART” after game‐over.  Instead, loop!
-          continue;                  // ← ADJUSTED: allow RESTART after the game end
+          // loop back to allow a RESTART without dropping the socket
+          continue;
         }
 
-        // 6) Otherwise, push the updated board and continue
+        // 7) normal update
         sendBoard();
       }
-    }
-    catch (Exception e) {
+    } catch (Exception e) {
       e.printStackTrace();
-    }
-    finally {
-      try { socket.close(); }
-      catch (IOException ignored) {}
+    } finally {
+      try { socket.close(); } catch (IOException ignored) {}
       System.out.println("Client disconnected.");
     }
   }
+
 
   private void sendBoard() throws IOException {
     StringBuilder sb = new StringBuilder();
