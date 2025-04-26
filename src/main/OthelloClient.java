@@ -1,4 +1,4 @@
-package src;
+package src.main;
 
 import javax.swing.*;
 import java.awt.*;
@@ -15,9 +15,9 @@ public class OthelloClient extends JFrame {
   private static final int CELL_SIZE  = 80;
   private static final Color BOARD_COLOR = new Color(0, 128, 0);
 
-  private static Socket socket;
-  private static DataInputStream in;
-  private static DataOutputStream out;
+  private Socket socket;
+  private DataInputStream in;
+  private DataOutputStream out;
 
   private final char[][] board = new char[BOARD_SIZE][BOARD_SIZE];
   private int currentPlayer = 1; // 1 = black, 2 = white
@@ -31,7 +31,7 @@ public class OthelloClient extends JFrame {
     new Thread(this::listenToServer).start();
   }
 
-  private static void setupNetworking() throws IOException {
+  private void setupNetworking() throws IOException {
     socket = new Socket("localhost", 9994);
     in     = new DataInputStream(socket.getInputStream());
     out    = new DataOutputStream(socket.getOutputStream());
@@ -50,7 +50,7 @@ public class OthelloClient extends JFrame {
   private void setupGUI() {
     setTitle("Othello Client");
     setJMenuBar(createMenuBar());
-    setSize(BOARD_SIZE * CELL_SIZE, BOARD_SIZE * CELL_SIZE + 40);
+    setSize(BOARD_SIZE * CELL_SIZE + 20, BOARD_SIZE * CELL_SIZE + 120);
 
     // ↓— do NOT auto-exit on close; we handle shutdown manually
     setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
@@ -59,12 +59,14 @@ public class OthelloClient extends JFrame {
       public void windowClosing(WindowEvent e) {
         // 1) signal the listen thread to stop
         gameOver = true;
-        // 2) tell server goodbye (optional but polite)
+        // 2) tell the server goodbye (optional but polite)
         try { out.writeUTF("bye"); out.flush(); } catch (IOException exception) {
-          exception.getMessage();
+          System.out.println("IO EXCEPTION");
         }
         // 3) close our socket
-        try { socket.close(); } catch (IOException ignored) {}
+        try { socket.close(); } catch (IOException ignored) {
+          System.out.println("IO EXCEPTION");
+        }
         // 4) dispose UI and exit JVM
         dispose();
         System.exit(0);
@@ -173,8 +175,18 @@ public class OthelloClient extends JFrame {
         @Override
         public void mousePressed(MouseEvent e) {
           if (gameOver) return;
+
           int col = e.getX() / CELL_SIZE;
           int row = e.getY() / CELL_SIZE;
+          Point click = new Point(col, row);
+
+          // only send if it’s in the precomputed validMoves
+          if (!validMoves.contains(click)) {
+            // optional feedback:
+            Toolkit.getDefaultToolkit().beep();
+            return;
+          }
+
           sendMove(row, col);
         }
       });
