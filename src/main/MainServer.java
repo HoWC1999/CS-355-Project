@@ -62,7 +62,7 @@ public class MainServer {
           }
           Thread.sleep(60_000); // check every minute
         }
-      } catch (Exception ignored) {}
+      } catch (Exception ignored) { return; }
     }, "Inactivity-Watchdog");
     watchdog.setDaemon(true);
     return watchdog;
