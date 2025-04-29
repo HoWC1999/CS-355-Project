@@ -10,12 +10,10 @@ public class OthelloServer implements Runnable {
   private static final char WHITE = 'w';
   private static final char BLACK = 'b';
 
-  private Socket socket;
+  private final Socket socket;
   private DataInputStream in;
   private DataOutputStream out;
-
   private final char[][] board = new char[BOARD_SIZE][BOARD_SIZE];
-  private int currentPlayer;
 
   public OthelloServer(Socket socket) {
     this.socket = socket;
@@ -23,11 +21,10 @@ public class OthelloServer implements Runnable {
   }
 
   private void initializeBoard() {
-    for (int r = 0; r < BOARD_SIZE; r++) {
-      for (int c = 0; c < BOARD_SIZE; c++) {
+    for (int r = 0; r < BOARD_SIZE; r++)
+      for (int c = 0; c < BOARD_SIZE; c++)
         board[r][c] = EMPTY;
-      }
-    }
+
     board[3][3] = WHITE;
     board[3][4] = BLACK;
     board[4][3] = BLACK;
@@ -40,34 +37,36 @@ public class OthelloServer implements Runnable {
       in  = new DataInputStream(socket.getInputStream());
       out = new DataOutputStream(socket.getOutputStream());
 
-      // 1) initial setup
+      // initial position
       initializeBoard();
       sendBoard();
 
+      outer:
       while (true) {
-        // Determine valid moves for both players
+        // 1) end‐of‐game: neither can move
         List<int[]> blackMoves = getValidMoves(BLACK);
         List<int[]> whiteMoves = getValidMoves(WHITE);
-
-        // If neither can move, end the game
         if (blackMoves.isEmpty() && whiteMoves.isEmpty()) {
           sendBoard();
           out.writeUTF(getWinnerMessage());
           out.flush();
-          // Wait for RESTART or bye
-          String cmd = in.readUTF().trim();
-          if (cmd.equalsIgnoreCase("RESTART")) {
-            initializeBoard();
-            sendBoard();
-            continue;
-          } else if (cmd.equalsIgnoreCase("bye")) {
-            break;
-          } else {
-            continue;
+
+          // wait only for RESTART or bye
+          while (true) {
+            String cmd = in.readUTF().trim();
+            if (cmd.equalsIgnoreCase("RESTART")) {
+              initializeBoard();
+              sendBoard();
+              continue outer;
+            }
+            if (cmd.equalsIgnoreCase("bye")) {
+              break outer;
+            }
+            // otherwise ignore
           }
         }
 
-        // If black can't move but white can, pass black and auto-play white
+        // 2) black has no move, white auto‐plays
         if (blackMoves.isEmpty()) {
           int[] m = whiteMoves.get(new Random().nextInt(whiteMoves.size()));
           placeMove(m[0], m[1], WHITE);
@@ -75,54 +74,41 @@ public class OthelloServer implements Runnable {
           continue;
         }
 
-        // Otherwise, handle a normal black move from the client
+        // 3) read black move or control
         String cmd = in.readUTF().trim();
-        if (cmd.equalsIgnoreCase("bye")) {
-          break;
-        }
+        if (cmd.equalsIgnoreCase("bye")) break;
         if (cmd.equalsIgnoreCase("RESTART")) {
           initializeBoard();
           sendBoard();
           continue;
         }
 
+        // 4) apply black move
         try {
           String[] parts = cmd.split(",");
           int row = Integer.parseInt(parts[0]);
           int col = Integer.parseInt(parts[1]);
           if (isValidMove(row, col, BLACK)) {
             placeMove(row, col, BLACK);
-          } else {
-            System.out.println("Invalid black move: " + row + "," + col);
           }
-        } catch (Exception e) {
-          System.out.println("Invalid command received: " + cmd);
-        }
+        } catch (Exception ignored) {}
 
-        // Auto-play white if possible
+        // 5) white auto‐plays if possible
         whiteMoves = getValidMoves(WHITE);
         if (!whiteMoves.isEmpty()) {
           int[] m = whiteMoves.get(new Random().nextInt(whiteMoves.size()));
           placeMove(m[0], m[1], WHITE);
         }
 
-        // After moves, check for game over again
-        if (isGameOver()) {
-          sendBoard();
-          out.writeUTF(getWinnerMessage());
-          out.flush();
-          continue;
-        }
+        // ---- **NO** second isGameOver() check here! ----
 
-        // Normal update
+        // 6) normal board update
         sendBoard();
       }
-    } catch (Exception e) {
+    } catch (IOException e) {
       e.printStackTrace();
     } finally {
-      try {
-        socket.close();
-      } catch (IOException ignored) {}
+      try { socket.close(); } catch (IOException ignored) {}
       System.out.println("Client disconnected.");
     }
   }
@@ -130,13 +116,11 @@ public class OthelloServer implements Runnable {
   private void sendBoard() throws IOException {
     StringBuilder sb = new StringBuilder();
     for (char[] row : board) {
-      for (char cell : row) {
-        sb.append(cell);
-      }
-      sb.append("\n");
+      for (char cell : row) sb.append(cell);
+      sb.append('\n');
     }
-    currentPlayer = 1;
-    sb.append(currentPlayer).append("\n");
+    // client always draws Black’s turn
+    sb.append('1').append('\n');
     out.writeUTF(sb.toString());
     out.flush();
   }
@@ -148,111 +132,80 @@ public class OthelloServer implements Runnable {
   }
 
   private boolean boardFull() {
-    for (char[] row : board) {
-      for (char cell : row) {
-        if (cell == EMPTY) {
-          return false;
-        }
-      }
-    }
+    for (char[] row : board)
+      for (char c : row)
+        if (c == EMPTY) return false;
     return true;
   }
 
   private boolean singleColorLeft() {
-    boolean seenBlack = false;
-    boolean seenWhite = false;
-    for (char[] row : board) {
-      for (char cell : row) {
-        if (cell == BLACK) seenBlack = true;
-        if (cell == WHITE) seenWhite = true;
-        if (seenBlack && seenWhite) return false;
+    boolean seenB = false, seenW = false;
+    for (char[] row : board)
+      for (char c : row) {
+        if (c == BLACK) seenB = true;
+        if (c == WHITE) seenW = true;
+        if (seenB && seenW) return false;
       }
-    }
     return true;
   }
 
   private String getWinnerMessage() {
-    int blackCount = 0;
-    int whiteCount = 0;
-    for (char[] row : board) {
-      for (char cell : row) {
-        if (cell == BLACK) blackCount++;
-        else if (cell == WHITE) whiteCount++;
+    int b=0, w=0;
+    for (char[] row : board)
+      for (char c : row) {
+        if (c == BLACK) b++;
+        else if (c == WHITE) w++;
       }
-    }
-    String winner;
-    if (blackCount > whiteCount) {
-      winner = "Black (You) win";
-    } else if (whiteCount > blackCount) {
-      winner = "White (Server) wins";
-    } else {
-      winner = "It's a tie";
-    }
-    return "Game Over Final Score: Black " + blackCount + " - White " + whiteCount + ". " + winner;
+    String winner = b> w ? "Black (You) win"
+      : w> b ? "White (Server) wins"
+      : "It's a tie";
+    return "Game Over! Final Score: Black " + b + " - White " + w + ". " + winner;
   }
 
-  private boolean isValidMove(int row, int col, char playerPiece) {
-    if (!isInBounds(row, col) || board[row][col] != EMPTY) {
-      return false;
-    }
-    char opponentPiece = (playerPiece == BLACK) ? WHITE : BLACK;
-    int[] dirR = {-1, -1, -1, 0, 1, 1, 1, 0};
-    int[] dirC = {-1, 0, 1, 1, 1, 0, -1, -1};
-    for (int d = 0; d < 8; d++) {
-      int r = row + dirR[d];
-      int c = col + dirC[d];
-      boolean foundOpponent = false;
-      while (isInBounds(r, c) && board[r][c] == opponentPiece) {
-        foundOpponent = true;
-        r += dirR[d];
-        c += dirC[d];
+  private boolean isValidMove(int r, int c, char p) {
+    if (!isInBounds(r,c) || board[r][c] != EMPTY) return false;
+    char o = p==BLACK ? WHITE : BLACK;
+    int[] dr={-1,-1,-1,0,1,1,1,0}, dc={-1,0,1,1,1,0,-1,-1};
+    for (int d=0; d<8; d++) {
+      int rr=r+dr[d], cc=c+dc[d];
+      boolean seen=false;
+      while (isInBounds(rr,cc)&&board[rr][cc]==o) {
+        seen=true; rr+=dr[d]; cc+=dc[d];
       }
-      if (foundOpponent && isInBounds(r, c) && board[r][c] == playerPiece) {
-        return true;
-      }
+      if (seen && isInBounds(rr,cc)&& board[rr][cc]==p) return true;
     }
     return false;
   }
 
-  private void placeMove(int row, int col, char playerPiece) {
-    board[row][col] = playerPiece;
-    flipPieces(row, col, playerPiece);
+  private void placeMove(int r,int c,char p) {
+    board[r][c]=p; flipPieces(r,c,p);
   }
 
-  private void flipPieces(int row, int col, char playerPiece) {
-    char opponentPiece = (playerPiece == BLACK) ? WHITE : BLACK;
-    int[] dirR = {-1, -1, -1, 0, 1, 1, 1, 0};
-    int[] dirC = {-1, 0, 1, 1, 1, 0, -1, -1};
-    for (int d = 0; d < 8; d++) {
-      List<int[]> toFlip = new ArrayList<>();
-      int r = row + dirR[d];
-      int c = col + dirC[d];
-      while (isInBounds(r, c) && board[r][c] == opponentPiece) {
-        toFlip.add(new int[]{r, c});
-        r += dirR[d];
-        c += dirC[d];
+  private void flipPieces(int r,int c,char p) {
+    char o = p==BLACK ? WHITE : BLACK;
+    int[] dr={-1,-1,-1,0,1,1,1,0}, dc={-1,0,1,1,1,0,-1,-1};
+    for (int d=0; d<8; d++) {
+      List<int[]> chain=new ArrayList<>();
+      int rr=r+dr[d], cc=c+dc[d];
+      while (isInBounds(rr,cc)&&board[rr][cc]==o) {
+        chain.add(new int[]{rr,cc});
+        rr+=dr[d]; cc+=dc[d];
       }
-      if (isInBounds(r, c) && board[r][c] == playerPiece) {
-        for (int[] flip : toFlip) {
-          board[flip[0]][flip[1]] = playerPiece;
-        }
+      if (isInBounds(rr,cc)&&board[rr][cc]==p) {
+        for (int[] xy:chain) board[xy[0]][xy[1]]=p;
       }
     }
   }
 
-  private List<int[]> getValidMoves(char playerPiece) {
-    List<int[]> moves = new ArrayList<>();
-    for (int r = 0; r < BOARD_SIZE; r++) {
-      for (int c = 0; c < BOARD_SIZE; c++) {
-        if (isValidMove(r, c, playerPiece)) {
-          moves.add(new int[]{r, c});
-        }
-      }
-    }
-    return moves;
+  private List<int[]> getValidMoves(char p) {
+    List<int[]> m=new ArrayList<>();
+    for (int r=0;r<BOARD_SIZE;r++)
+      for (int c=0;c<BOARD_SIZE;c++)
+        if (isValidMove(r,c,p)) m.add(new int[]{r,c});
+    return m;
   }
 
-  private boolean isInBounds(int r, int c) {
-    return r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE;
+  private boolean isInBounds(int r,int c) {
+    return r>=0&&r<BOARD_SIZE&&c>=0&&c<BOARD_SIZE;
   }
 }
